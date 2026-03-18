@@ -35,6 +35,15 @@ end architecture;
 -- USE IEEE.NUMERIC_STD.ALL;
 
 -- entity etageDE is
+-- port(
+--    i_DE,WD_ER,pc_plus_4: in std_logic_vector(31 down 0);
+--    Op3_ER: in std_logic_vector(3 downto 0);
+--    RegSrc, immSrc: in std_logic_vector(1 downto 0);
+--    RegWr,clk,Init : in std_logic;
+--    Reg1,Reg2: out std_logic_vector(3 downto 0);
+--    Op1,Op2,extlmm: out std_logic_vector(31 downto 0);
+--    Op3_DE : out std_logic_vector(3 downto 0)
+--);
 -- end entity;
 
 -- -------------------------------------------------
@@ -46,7 +55,15 @@ end architecture;
 -- USE IEEE.NUMERIC_STD.ALL;
 
 -- entity etageEX is
--- end entity
+--     port(
+--       Op1_EX,Op2_EX,Extlmm_EX,Res_fwd_ME,Res_fwd_ER: in std_logic_vector(31 downto 0);
+--       Op3_EX: in std_logic_vector(3 downto 0);
+--       EA_EX,EB_EX,ALUCtrl_EX: in std_logic_vector(1 downto 0);
+--       ALUSrc_EX: in std_logic;
+--       CC,Op3_EX_out: out std_logic_vector(3 downto 0);
+--       Res_EX,WD_EX,npc_fw_br : out std_logic_vector(31 downto 0)
+--     );
+-- -- end entity
 -- -------------------------------------------------
 
 -- -- Etage ME
@@ -56,6 +73,13 @@ end architecture;
 -- USE IEEE.NUMERIC_STD.ALL;
 
 -- entity etageME is
+    -- port(
+    --   Res_ME,WD_ME : in std_logic_vector(31 downto 0);
+    --   Op3_ME : in std_logic_vector(3 downto 0);
+    --   clk, MemWR_Mem : in std_logic;
+    --   Res_Mem_ME,Res_ALU_ME,Op3_ME_out,Res_fwd_ME: out std_logic_vector(31 downto 0);
+    --   Op3_ME_out: out std_logic_vector(3 downto 0)
+    --   );
 -- end entity;
 -- -------------------------------------------------
 
@@ -66,4 +90,11 @@ end architecture;
 -- USE IEEE.NUMERIC_STD.ALL;
 
 -- entity etageER is
+    -- port(
+    --   Res_Mem_RE,Res_ALU_RE : in std_logic_vector(31 downto 0);
+    --   Op3_RE : in std_logic_vector(3 downto 0);
+    --   MemToReg_RE : in std_logic;
+    --   Res_RE : out std_logic_vector(31 down to 0);
+    --   Op3_RE_out: out std_logic_vector(3 downto 0)
+    -- );
 -- end entity;
