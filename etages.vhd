@@ -48,6 +48,25 @@ begin
           instr=> i_FE
         );
 
+  process():
+  begin
+    if Bpris_EX='1' then
+      pc_reg_in<=npc_fw_br;
+    else
+      pc_reg_in<=pc_inter
+    end if;
+  end process;
+
+  process():
+  begin
+    if PCSrc_ER then
+      pc_inter<=npc;
+    else
+      pc_inter<=sig_pc_plus_4;
+    end if;
+  end process;
+
+  
 end architecture;
 
 -- -------------------------------------------------
