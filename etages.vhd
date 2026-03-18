@@ -23,6 +23,30 @@ begin
   
   -- Architecture à compléter
   
+  adder : entity work.addComplex
+    port map (
+      A => pc_reg_out,
+      B => sig_4,
+      cin => '0',
+      s => sig_pc_plus_4,
+      c30 => open,
+      c31 => open
+    );
+
+  bancderegistre : entity work.Reg32
+      port map (
+        source=> pc_reg_in,
+        output => pc_reg_out,
+        clk=>clk,
+        wr=> GEL_LI,
+        raz=>'1'
+      );
+  
+  memoireinstruscteur : entity work.inst_mem
+        port map(
+          addr=> pc_reg_out,
+          instr=> i_FE
+        );
 
 end architecture;
 
