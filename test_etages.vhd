@@ -66,9 +66,9 @@ etageFE0 : entity work.etageFE(etageFE_arch)
 P_TEST: process
 begin
 
-        E_PCSrc_ER<=0;
-        E_GEL_LI<=0;
-        E_Bpris_EX<=0;
+        E_PCSrc_ER<='0';
+        E_GEL_LI<='0';
+        E_Bpris_EX<='0';
         E_npc<=(others => '0');
         E_npc_fw_br<=(others => '0');
 
