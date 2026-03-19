@@ -48,24 +48,15 @@ begin
           instr=> i_FE
         );
 
-  process():
-  begin
-    if Bpris_EX='1' then
-      pc_reg_in<=npc_fw_br;
-    else
-      pc_reg_in<=pc_inter
-    end if;
-  end process;
 
-  process():
-  begin
-    if PCSrc_ER then
-      pc_inter<=npc;
-    else
-      pc_inter<=sig_pc_plus_4;
-    end if;
-  end process;
 
+  --Multiplexeur 1
+  pc_inter <= npc when PCSrc_ER = '1' else sig_pc_plus_4;
+  
+  --Multiplexeur 2
+  pc_reg_in <= npc_fw_br when Bpris_EX = '1' else pc_inter;
+
+  pc_plus_4<=sig_pc_plus_4;
   
 end architecture;
 
