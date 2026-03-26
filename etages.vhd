@@ -114,7 +114,7 @@ begin
         dest_reg : Op3_ER;
         data_i : WD_ER;
         pc_in : pc_plus_4;
-        init : init; 
+        init : Init; 
         wr_reg : RegWr;
         clk : clk
 	);
