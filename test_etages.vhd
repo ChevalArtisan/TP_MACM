@@ -65,27 +65,44 @@ etageFE0 : entity work.etageFE(etageFE_arch)
 -- debut sequence de test
 P_TEST: process
 begin
+    -- Initialisation : On laisse le PC s'incrémenter normalement (0, 4, 8...)
+    E_GEL_LI    <= '1'; -- Autorise l'écriture du PC
+    E_PCSrc_ER  <= '0';
+    E_Bpris_EX  <= '0';
+    E_npc       <= x"000000A0"; -- Adresse cible 1
+    E_npc_fw_br <= x"000000F0"; -- Adresse cible 2
+    
+    wait for 30 ns; -- On laisse passer 3 cycles (0 -> 4 -> 8 -> 12)
 
-        E_PCSrc_ER<='0';
-        E_GEL_LI<='0';
-        E_Bpris_EX<='0';
-        E_npc<=(others => '0');
-        E_npc_fw_br<=(others => '0');
+    -- Saut avec PCSrc_ER 
+    wait until falling_edge(E_CLK); 
+    E_PCSrc_ER <= '1'; 
+    
+    wait until falling_edge(E_CLK);
+    -- Ici, le PC doit être passé à 0x000000A0
+    E_PCSrc_ER <= '0'; -- On désactive le saut pour reprendre l'incrémentation
+    
+    wait for 20 ns; -- On avance un peu (A0 -> A4 -> A8)
 
+    -- Saut avec Bpris_EX
+    wait until falling_edge(E_CLK);
+    E_Bpris_EX <= '1'; 
+    
+    wait until falling_edge(E_CLK);
+    -- Ici, le PC doit être passé à 0x000000F0
+    E_Bpris_EX <= '0';
 
--- Exemple : test de l'incrémentation simple (PC+4)
-        E_GEL_LI <= '1'; -- On ne gèle pas
-        E_PCSrc_ER <= '0';
-        E_Bpris_EX <= '0';
-        
-        wait for 20 ns;
-        
-        -- Exemple : Forcer un saut (npc)
-        E_npc <= x"00000020";
-        E_PCSrc_ER <= '1';
-        wait for 10 ns;
-        E_PCSrc_ER <= '0';
+    -- Gel du pipeline (Stall)
+    wait until falling_edge(E_CLK);
+    E_GEL_LI <= '0'; -- On bloque le PC
+    
+    wait for 30 ns; 
+    -- Le PC ne doit pas bouger pendant cette période
+    E_GEL_LI <= '1';
 
-        wait;
-end process;
+    wait for 20 ns;
+
+    assert FALSE report "Fin de simulation - Vérifiez les sauts sur GTKWave" severity FAILURE;
+    wait;
+end process P_TEST;
 end behavior;
