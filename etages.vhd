@@ -17,10 +17,18 @@ end entity;
 
 architecture etageFE_arch of etageFE is
   signal pc_inter, pc_reg_in, pc_reg_out, sig_pc_plus_4, sig_4: std_logic_vector(31 downto 0);
+  -- Logique des multiplexeurs (Schéma page 2 du PDF)
+
+  
+  -- Liaison de la sortie
+
 begin
 
   sig_4 <= (2=>'1', others => '0');
-  
+  pc_inter  <= npc when PCSrc_ER = '1' else sig_pc_plus_4;
+  pc_reg_in <= npc_fw_br when Bpris_EX = '1' else pc_inter;
+  pc_plus_4 <= sig_pc_plus_4;
+
   -- Architecture à compléter
   
   adder : entity work.addComplex
@@ -47,17 +55,17 @@ begin
           addr=> pc_reg_out,
           instr=> i_FE
         );
-
-
-
-  --Multiplexeur 1
+    --Multiplexeur 1
   pc_inter <= npc when PCSrc_ER = '1' else sig_pc_plus_4;
   
   --Multiplexeur 2
   pc_reg_in <= npc_fw_br when Bpris_EX = '1' else pc_inter;
 
-  pc_plus_4<=sig_pc_plus_4;
-  
+  pc_plus_4<=sig_pc_plus_4;        
+
+
+
+
 end architecture;
 
 -- -------------------------------------------------
