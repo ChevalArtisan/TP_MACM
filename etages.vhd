@@ -180,7 +180,7 @@ entity etageME is
       Res_ME,WD_ME : in std_logic_vector(31 downto 0);
       Op3_ME : in std_logic_vector(3 downto 0);
       clk, MemWR_Mem : in std_logic;
-      Res_Mem_ME,Res_ALU_ME,Op3_ME_out,Res_fwd_ME: out std_logic_vector(31 downto 0);
+      Res_Mem_ME,Res_ALU_ME,Res_fwd_ME: out std_logic_vector(31 downto 0);
       Op3_ME_out: out std_logic_vector(3 downto 0)
       );
 
