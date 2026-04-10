@@ -1,115 +1,95 @@
 library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.NUMERIC_STD.ALL;
+use IEEE.STD_VALUE_TYPES.all;
+use IEEE.STD_LOGIC_1164.all;
 
 entity ControlUnit is
-    port(
-        instr   : in  std_logic_vector(31 downto 0); -- L'instruction complète
-        CC      : in  std_logic_vector(3 downto 0);  -- Drapeaux N, Z, C, V
-        -- Signaux vers le Datapath
-        RegWr   : out std_logic;
-        RegSrc  : out std_logic_vector(1 downto 0);
-        ALUSrc  : out std_logic;
-        ALUCtrl : out std_logic_vector(1 downto 0);
-        MemWr   : out std_logic;
-        MemToReg: out std_logic;
-        ImmSrc  : out std_logic_vector(1 downto 0);
-        PCSrc   : out std_logic;
-        -- Signal interne pour la mise à jour des flags
-        CCWr    : out std_logic
+    port (
+        instr    : in  std_logic_vector(31 downto 0);
+        PCSrc    : out std_logic;
+        RegWr    : out std_logic;
+        MemToReg : out std_logic;
+        MemWr    : out std_logic;
+        AluCtrl  : out std_logic_vector(1 downto 0);
+        Branch   : out std_logic;
+        CCWr     : out std_logic;
+        AluSrc   : out std_logic;
+        ImmSrc   : out std_logic_vector(1 downto 0);
+        RegSrc   : out std_logic_vector(1 downto 0);
+        Cond     : out std_logic_vector(3 downto 0) 
     );
 end entity;
 
-architecture behavior of ControlUnit is
-    signal Cond     : std_logic_vector(3 downto 0);
-    signal Op       : std_logic_vector(1 downto 0);
-    signal Funct    : std_logic_vector(5 downto 0);
-    signal Rd       : std_logic_vector(3 downto 0);
-    signal CondEx   : std_logic; -- Indique si la condition est remplie
-    signal Branch   : std_logic; -- Signal interne de branchement
-    signal RegWr_int: std_logic; -- Signal interne d'écriture registre
+architecture Behavioral of ControlUnit is
+    signal op     : std_logic_vector(1 downto 0);
+    signal funct  : std_logic_vector(5 downto 0);
+    signal rd     : std_logic_vector(3 downto 0);
+    signal s_bit  : std_logic;
 begin
+    -- Découpage de l'instruction
+    Cond   <= instr(31 downto 28);
+    op     <= instr(27 downto 26);
+    funct  <= instr(25 downto 20);
+    rd     <= instr(15 downto 12);
+    s_bit  <= instr(20);
 
-    -- Extraction des champs de l'instruction
-    Cond  <= instr(31 downto 28);
-    Op    <= instr(27 downto 26);
-    Funct <= instr(25 downto 20); -- I, Cmd(4), S
-    Rd    <= instr(15 downto 12);
-
-    -----------------------------------------------------
-    -- LOGIQUE DE DÉCODAGE PRINCIPALE
-    -----------------------------------------------------
-    process(Op, Funct, Rd)
+    process(op, funct, rd, s_bit)
     begin
         -- Valeurs par défaut
         Branch   <= '0';
-        RegWr_int<= '0';
-        RegSrc   <= "00";
-        ALUSrc   <= '0';
-        ALUCtrl  <= "00";
-        MemWr    <= '0';
         MemToReg <= '0';
+        MemWr    <= '0';
+        AluSrc   <= '0';
+        RegWr    <= '0';
+        AluCtrl  <= "00";
         ImmSrc   <= "00";
-        CCWr     <= '0';
+        RegSrc   <= "00";
 
-        case Op is
-            when "00" => -- DATA PROCESSING
-                RegWr_int <= '1';
-                ALUSrc    <= Funct(5); -- Bit 'I'
-                ALUCtrl   <= Funct(4 downto 3); -- Simplification Cmd
-                CCWr      <= Funct(0); -- Bit 'S'
-                ImmSrc    <= "00";
-
-            when "01" => -- MEMORY (LDR/STR)
-                ALUSrc    <= '1'; -- On ajoute l'immédiat à l'adresse
-                ImmSrc    <= "01";
-                if Funct(0) = '1' then -- LDR
-                    RegWr_int <= '1';
-                    MemToReg  <= '1';
-                else                   -- STR
-                    MemWr     <= '1';
-                    RegSrc(1) <= '1'; -- Rd en 2ème source registre
+        case op is
+            when "00" => -- Instructions de Calcul
+                RegWr  <= '1';
+                AluSrc <= funct(5);
+                if funct(4 downto 1) = "1010" then -- CMP
+                    RegWr <= '0';
+                    AluCtrl <= "01";
+                elsif funct(4 downto 1) = "0100" then -- ADD
+                    AluCtrl <= "00";
+                elsif funct(4 downto 1) = "0010" then -- SUB
+                    AluCtrl <= "01";
+                elsif funct(4 downto 1) = "0000" then -- AND
+                    AluCtrl <= "10";
+                elsif funct(4 downto 1) = "1100" then -- ORR
+                    AluCtrl <= "11";
                 end if;
 
-            when "10" => -- BRANCH (B)
-                Branch    <= '1';
-                ALUSrc    <= '1';
-                ImmSrc    <= "10";
-                RegSrc    <= "01"; -- Pas utilisé pour B mais souvent défini
+            when "01" => -- Instructions Mémoire (LDR/STR)
+                AluSrc <= '1';
+                ImmSrc <= "01";
+                if funct(0) = '1' then -- LDR (bit 20 = 1)
+                    RegWr    <= '1';
+                    MemToReg <= '1';
+                else -- STR (bit 20 = 0)
+                    MemWr    <= '1';
+                    RegSrc(1)<= '1';
+                end if;
+
+            when "10" => -- Branchement (B)
+                Branch <= '1';
+                AluSrc <= '1';
+                ImmSrc <= "10";
+                RegSrc <= "01";
+                RegWr  <= '0';
+                AluCtrl<= "00";
 
             when others => null;
         end case;
     end process;
 
-    -----------------------------------------------------
-    -- LOGIQUE DES CONDITIONS (II.2)
-    -----------------------------------------------------
-    -- N=CC(3), Z=CC(2), C=CC(1), V=CC(0)
-    process(Cond, CC)
-    begin
-        case Cond is
-            when "0000" => CondEx <= CC(2);          -- EQ (Z=1)
-            when "0001" => CondEx <= not CC(2);      -- NE (Z=0)
-            when "0010" => CondEx <= CC(1);          -- CS (C=1)
-            when "0011" => CondEx <= not CC(1);      -- CC (C=0)
-            when "0100" => CondEx <= CC(3);          -- MI (N=1)
-            when "0101" => CondEx <= not CC(3);      -- PL (N=0)
-            when "0110" => CondEx <= CC(0);          -- VS (V=1)
-            when "0111" => CondEx <= not CC(0);      -- VC (V=0)
-            when "1010" =>                           -- GE
-                if CC(3) = CC(0) then CondEx <= '1'; else CondEx <= '0'; end if;
-            when "1110" => CondEx <= '1';            -- AL (Always)
-            when others => CondEx <= '0';
-        end case;
-    end process;
-
-    -----------------------------------------------------
-    -- CALCUL FINAL DES SIGNAUX
-    -----------------------------------------------------
-    -- Une instruction n'écrit ou ne branche QUE si la condition est vraie
-    RegWr <= RegWr_int and CondEx;
     
-    -- PCSrc = Branch pris OU (Ecriture registre dans R15/PC)
-    PCSrc <= (Branch and CondEx) or (RegWr_int and CondEx when Rd = "1111" else '0');
+
+    PCSrc <= '1' when (rd = "1111" and ((op = "00" and RegWr = '1') or 
+                      (op = "01" and funct(0) = '1'))) 
+                      else '0';
+
+    CCWr <= '1' when (op = "00" and s_bit = '1') else '0';
 
 end architecture;
