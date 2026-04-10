@@ -1,2 +1,8 @@
 *.o
 
+vagues.vcd
+work-obj93.cf
+vaguesDE.vcd
+test_etagesde
+.gitignore
+test_etages
