@@ -35,8 +35,8 @@ begin
             when "0111" => res_cond <= not V;           -- VC 
             when "1000" => res_cond <= C and (not Z);   -- HI 
             when "1001" => res_cond <= (not C) or Z;    -- LS 
-            when "1010" => res_cond <= N and V;   -- GE 
-            when "1011" => res_cond <= N nand V;         -- LT
+            when "1010" => res_cond <= (N and V) or (not N and not V); -- GE (N=V)
+            when "1011" => res_cond <= (N and not V) or (not N and V); -- LT (N!=V)
             when "1100" => res_cond <= (not Z) and (N and V);-- GT
             when "1101" => res_cond <= Z or (N nand V);  -- LE
             when "1110" => res_cond <= '1';             -- AL
