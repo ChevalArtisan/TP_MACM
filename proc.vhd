@@ -2,6 +2,13 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 use IEEE.NUMERIC_STD.all;
 
+entity dataPath is
+  port(
+    clk, init : in std_logic; -- Seules entrées nécessaires
+    instr_DE   : out std_logic_vector(31 downto 0);
+    a1, a2, rs1, rs2, CC, op3_EX_out, op3_ME_out, op3_RE_out : out std_logic_vector(3 downto 0)
+  );      
+end entity;
 
 architecture dataPath_arch of dataPath is
 
@@ -57,6 +64,10 @@ architecture dataPath_arch of dataPath is
   signal sig_Gel_LI, sig_Gel_DI, sig_RAZ_DI, sig_Clr_EX : std_logic;
   signal sig_Bpris_EX : std_logic;
 
+
+  signal sig_PCSrc_FE : std_logic;
+  signal sig_Bpris_FE : std_logic;
+  signal sig_CC_ALU : std_logic_vector(3 downto 0);
 begin
 
   ---------------------------------------------------------------------------
@@ -74,21 +85,27 @@ begin
       PCSrc_ME    => sig_MemToReg_ME, -- ou PCSrc pipeliné si présent
       PCSrc_ER    => sig_RegWr_ER, -- Adapter selon votre signal PCSrc_ER final
       Bpris_EX    => sig_Bpris_EX,
-      EA_EX       => sig_EA_EX, EB_EX => sig_EB_EX,
-      Gel_LI      => sig_Gel_LI, Gel_DI => sig_Gel_DI,
-      RAZ_DI      => sig_RAZ_DI, Clr_EX => sig_Clr_EX
+      EA_EX       => sig_EA_EX, 
+      EB_EX       => sig_EB_EX,
+      Gel_LI      => sig_Gel_LI, 
+      Gel_DI      => sig_Gel_DI,
+      RAZ_DI      => sig_RAZ_DI, 
+      Clr_EX      => sig_Clr_EX
     );
 
   sig_Bpris_EX <= sig_Branch_EX and sig_CondEx_EX;
   ---------------------------------------------------------------------------
   -- ETAGE 1 : FETCH (FE)
   ---------------------------------------------------------------------------
+  
+  sig_PCSrc_FE <= sig_PCSrc_EX and sig_CondEx_EX;
+  sig_Bpris_FE  <= sig_Branch_EX and sig_CondEx_EX;
   inst_FE : entity work.etageFE
     port map (
       npc       => sig_Res_RE,
       npc_fw_br => sig_npc_fw_br,
-      PCSrc_ER  => sig_PCSrc_EX and sig_CondEx_EX, -- PC change si instruction cible R15 ET Cond valide
-      Bpris_EX  => sig_Branch_EX and sig_CondEx_EX, -- Branchement pris si Branch ET Cond valide
+      PCSrc_ER  => sig_PCSrc_FE, -- PC change si instruction cible R15 ET Cond valide
+      Bpris_EX  => sig_Bpris_FE, -- Branchement pris si Branch ET Cond valide
       GEL_LI    => sig_Gel_LI,
       clk       => clk,
       pc_plus_4 => sig_pc_plus_4_FE,
@@ -97,10 +114,21 @@ begin
 
   -- Pipeline FE/DE
   reg_FE_DE_inst : entity work.Reg32sync 
-    port map (source => sig_i_FE, output => sig_i_DE, gel => sig_Gel_DI, raz => RAZ_DI, clk => clk);
+    port map (
+        source => sig_i_FE, 
+        output => sig_i_DE, 
+        wr    => sig_Gel_DI,
+        raz    => sig_RAZ_DI,
+        clk    => clk
+    );
   reg_FE_DE_pc   : entity work.Reg32sync 
-    port map (source => sig_pc_plus_4_FE, output => sig_pc_plus_4_DE, gel => sig_Gel_DI, raz => '1', clk => clk);
-
+    port map (
+            source => sig_pc_plus_4_FE, 
+            output => sig_pc_plus_4_DE, 
+            wr    => sig_Gel_DI, 
+            raz    => '0',        
+            clk    => clk
+        );
   ---------------------------------------------------------------------------
   -- ETAGE 2 : DECODE (DE)
   ---------------------------------------------------------------------------
@@ -185,7 +213,7 @@ begin
     port map (
       Cond    => sig_Cond_EX,
       CC_EX   => sig_CC_EX_reg, -- Drapeaux actuels
-      CC      => CC,           -- Drapeaux venant de l'ALU
+      CC      => sig_CC_ALU,           -- Drapeaux venant de l'ALU
       CCWr_EX => sig_CCWr_EX,
       CC_out  => sig_CC_out_EX,
       CondEx  => sig_CondEx_EX
@@ -203,7 +231,7 @@ begin
       EB_EX      => sig_EB_EX,
       ALUCtrl_EX => sig_AluCtrl_EX,
       ALUSrc_EX  => sig_AluSrc_EX,
-      CC         => CC,
+      CC         => sig_CC_ALU,
       Op3_EX_out => sig_Op3_EX_out,
       Res_EX     => sig_Res_EX,
       WD_EX      => sig_WD_EX,
