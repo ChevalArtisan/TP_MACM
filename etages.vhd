@@ -141,32 +141,30 @@ entity etageEX is
       CC,Op3_EX_out: out std_logic_vector(3 downto 0);
       Res_EX,WD_EX,npc_fw_br : out std_logic_vector(31 downto 0)
     );
-
+end entity;
     architecture etageEX_arch of etageEX is
     signal ALUOp1,ALUOp2, Oper2, res: std_logic_vector(31 downto 0);
     begin
       ALUOp1 <= Op1_EX when EA_EX="00" else Res_fwd_ER when EA_EX ="01" else Res_fwd_ME when EA_EX="10" else (others=>'0');
       Oper2 <= Op2_EX when EB_EX="00" else Res_fwd_ER when EB_EX ="01" else Res_fwd_ME when EB_EX="10" else (others=>'0');
-      ALUOp2 <= Extlmm_EX when ALUCtrl_EX = '1' else Oper2;
+      ALUOp2 <= Extlmm_EX when ALUSrc_EX = '1' else Oper2;
       
       op3_EX_out<=Op3_EX;
       WD_EX<=Op2_EX;
       
       ALU : entity work.ALU 
         port map(
-          A <=ALUOp1,
-          B <= ALUOp2,
-          sel <= ALUCtrl_EX,
-          Res <= res,
-          CC <= CC
+          A   => ALUOp1,
+          B   => ALUOp2,
+          sel => ALUCtrl_EX,
+          Res => res,
+          CC  => CC
         );
       
       Res_EX<=res;
       npc_fw_br<=res;
     end architecture;
 
-    
-end entity
 -------------------------------------------------
 
 -- Etage ME
@@ -183,8 +181,8 @@ entity etageME is
       Res_Mem_ME,Res_ALU_ME,Res_fwd_ME: out std_logic_vector(31 downto 0);
       Op3_ME_out: out std_logic_vector(3 downto 0)
       );
-
-      architecture etageME_arch of etageME
+end entity;
+      architecture etageME_arch of etageME is
     begin
       Res_ALU_ME<=Res_ME;
       op3_ME_out<=op3_ME;
@@ -192,15 +190,14 @@ entity etageME is
 
       memoirededonnees: entity work.data_mem
       port map(
-        addr<= Res_ME,
-        WD <= WD_ME,
-        clk<=clk,
-        WR <= MemWr_Mem,
-        data <= Res_Mem_ME
+        addr=> Res_ME,
+        WD => WD_ME,
+        clk=>clk,
+        WR => MemWr_Mem,
+        data => Res_Mem_ME
         );
 
     end architecture;
-end entity;
 -------------------------------------------------
 
 -- Etage ER
@@ -214,16 +211,14 @@ entity etageER is
       Res_Mem_RE,Res_ALU_RE : in std_logic_vector(31 downto 0);
       Op3_RE : in std_logic_vector(3 downto 0);
       MemToReg_RE : in std_logic;
-      Res_RE : out std_logic_vector(31 down to 0);
+      Res_RE : out std_logic_vector(31 downto 0);
       Op3_RE_out: out std_logic_vector(3 downto 0)
     );
-
+end entity;
       architecture etageER_arch of etageER is
-        
       begin
-        Res_RE<= Res_Mem_ME when MemToReg_RE ='1' else Res_ALU_RE;
+        Res_RE<= Res_Mem_RE when MemToReg_RE ='1' else Res_ALU_RE;
         op3_RE_out<= Op3_RE;
         
       end architecture etageER_arch;
 
-end entity;
