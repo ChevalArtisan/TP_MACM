@@ -1,5 +1,4 @@
 library IEEE;
-use IEEE.STD_VALUE_TYPES.all;
 use IEEE.STD_LOGIC_1164.all;
 
 entity ControlUnit is
@@ -86,8 +85,8 @@ begin
 
     
 
-    PCSrc <= '1' when (rd = "1111" and ((op = "00" and RegWr = '1') or 
-                      (op = "01" and funct(0) = '1'))) 
+    PCSrc <= '1' when (rd = "1111" and op = "00")  or 
+                      (op = "01" and funct(0) = '1') 
                       else '0';
 
     CCWr <= '1' when (op = "00" and s_bit = '1') else '0';
