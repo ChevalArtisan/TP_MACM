@@ -1,11 +1,11 @@
-TPs MACM
+><h1> TPs MACM </h1>
 
-Hippolyte HANDWERK 
-M1 SECIL
+><p>Hippolyte HANDWERK 
+>M1 SECIL </p>
 
-Fichiers de base pour la conception d'un processeur pipeliné sur la base d'une ISA ARM simplifiée.
+<p>Fichiers de base pour la conception d'un processeur pipeliné sur la base d'une ISA ARM simplifiée.
+</p>
 
-
-Comment executer le processeur
-executer le bash lance.sh pour tester le processeur
-(si vous voulez d'autres instructions changez le memfile.dat et remplissez en hexadecimales votre nouvelle suite d'instructions)
+><h3>Comment executer le processeur:</h3>
+executer le bash <strong>lance.sh</strong> pour tester le processeur<br>
+<p>(si vous voulez d'autres instructions changez le <strong>memfile.dat</strong> et remplissez en hexadecimales votre nouvelle suite d'instructions)</p>
