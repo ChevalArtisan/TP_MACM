@@ -2,10 +2,10 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 use IEEE.NUMERIC_STD.all;
 
-entity proc_tb is
+entity test_proc is
 end entity;
 
-architecture bhv of proc_tb is
+architecture bhv of test_proc is
     -- Signaux du testbench
     signal clk   : std_logic := '0';
     signal init  : std_logic := '1';
