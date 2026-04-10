@@ -6,7 +6,7 @@ use IEEE.NUMERIC_STD.all;
 architecture dataPath_arch of dataPath is
 
   ---------------------------------------------------------------------------
-  -- 1. DÉCLARATION DES SIGNAUX INTERNES
+  -- DÉCLARATION DES SIGNAUX INTERNES
   ---------------------------------------------------------------------------
   
   -- Etage FE (Fetch)
@@ -52,8 +52,34 @@ architecture dataPath_arch of dataPath is
   signal sig_RegWr_ER, sig_MemToReg_ER : std_logic;
   signal sig_Res_RE : std_logic_vector(31 downto 0);
 
+  -- Signaux pour l'unité de gestion des aléas
+  signal sig_EA_EX, sig_EB_EX : std_logic_vector(1 downto 0);
+  signal sig_Gel_LI, sig_Gel_DI, sig_RAZ_DI, sig_Clr_EX : std_logic;
+  signal sig_Bpris_EX : std_logic;
+
 begin
 
+  ---------------------------------------------------------------------------
+  -- GESTIONNAIRE DES ALÉAS (HAZARD UNIT)
+  ---------------------------------------------------------------------------
+  inst_Hazard : entity work.HazardUnit
+    port map (
+      a1          => sig_Reg1, 
+      a2          => sig_Reg2, 
+      Op3_ME_out  => sig_Op3_ME_out, Op3_RE_out => sig_Op3_RE_out,
+      RegWr_ME    => sig_RegWr_ME, RegWr_RE => sig_RegWr_ER,
+      Reg1        => sig_Reg1, Reg2 => sig_Reg2, -- Indices pour LDRStall
+      Op3_EX_out  => sig_Op3_EX_out, MemToReg_EX => sig_MemToReg_EX,
+      PCSrc_DE    => sig_PCSrc_DE, PCSrc_EX => sig_PCSrc_EX,
+      PCSrc_ME    => sig_MemToReg_ME, -- ou PCSrc pipeliné si présent
+      PCSrc_ER    => sig_RegWr_ER, -- Adapter selon votre signal PCSrc_ER final
+      Bpris_EX    => sig_Bpris_EX,
+      EA_EX       => sig_EA_EX, EB_EX => sig_EB_EX,
+      Gel_LI      => sig_Gel_LI, Gel_DI => sig_Gel_DI,
+      RAZ_DI      => sig_RAZ_DI, Clr_EX => sig_Clr_EX
+    );
+
+  sig_Bpris_EX <= sig_Branch_EX and sig_CondEx_EX;
   ---------------------------------------------------------------------------
   -- ETAGE 1 : FETCH (FE)
   ---------------------------------------------------------------------------
@@ -63,7 +89,7 @@ begin
       npc_fw_br => sig_npc_fw_br,
       PCSrc_ER  => sig_PCSrc_EX and sig_CondEx_EX, -- PC change si instruction cible R15 ET Cond valide
       Bpris_EX  => sig_Branch_EX and sig_CondEx_EX, -- Branchement pris si Branch ET Cond valide
-      GEL_LI    => Gel_LI,
+      GEL_LI    => sig_Gel_LI,
       clk       => clk,
       pc_plus_4 => sig_pc_plus_4_FE,
       i_FE      => sig_i_FE
@@ -71,9 +97,9 @@ begin
 
   -- Pipeline FE/DE
   reg_FE_DE_inst : entity work.Reg32sync 
-    port map (source => sig_i_FE, output => sig_i_DE, gel => Gel_DI, raz => RAZ_DI, clk => clk);
+    port map (source => sig_i_FE, output => sig_i_DE, gel => sig_Gel_DI, raz => RAZ_DI, clk => clk);
   reg_FE_DE_pc   : entity work.Reg32sync 
-    port map (source => sig_pc_plus_4_FE, output => sig_pc_plus_4_DE, gel => Gel_DI, raz => '1', clk => clk);
+    port map (source => sig_pc_plus_4_FE, output => sig_pc_plus_4_DE, gel => sig_Gel_DI, raz => '1', clk => clk);
 
   ---------------------------------------------------------------------------
   -- ETAGE 2 : DECODE (DE)
@@ -115,25 +141,37 @@ begin
       Op3_DE    => sig_Op3_DE
     );
 
-  -- Pipeline DE/EX
+---------------------------------------------------------------------------
+  -- REGISTRE DE PIPELINE DE / EX (Contrôle et Données)
+  ---------------------------------------------------------------------------
   process(clk) begin
     if rising_edge(clk) then
-      if Clr_EX = '0' then
-        sig_RegWr_EX <= '0'; sig_MemWR_EX <= '0'; sig_Branch_EX <= '0'; sig_CCWr_EX <= '0';
+      -- sig_Clr_EX est piloté par la Hazard Unit
+      -- Si '0', on injecte un NOP (on met à 0 les signaux d'écriture)
+      if sig_Clr_EX = '0' then 
+        sig_RegWr_EX    <= '0';
+        sig_MemWR_EX    <= '0';
+        sig_Branch_EX   <= '0';
+        sig_CCWr_EX     <= '0';
+        sig_PCSrc_EX    <= '0';
+        sig_MemToReg_EX <= '0';
       else
+        -- Sinon, on propage normalement les signaux de contrôle
+        sig_RegWr_EX    <= sig_RegWr_DE;
+        sig_MemWR_EX    <= sig_MemWR_DE;
+        sig_Branch_EX   <= sig_Branch_DE;
+        sig_CCWr_EX     <= sig_CCWr_DE;
+        sig_PCSrc_EX    <= sig_PCSrc_DE;
+        sig_MemToReg_EX <= sig_MemToReg_DE;
+        sig_AluCtrl_EX  <= sig_AluCtrl_DE;
+        sig_AluSrc_EX   <= sig_AluSrc_DE;
+        sig_Cond_EX     <= sig_Cond_DE;
+        
+        -- On propage aussi les données lues dans les registres / immédiat
         sig_Op1_EX      <= sig_Op1_DE;
         sig_Op2_EX      <= sig_Op2_DE;
         sig_extImm_EX   <= sig_extImm_DE;
         sig_Op3_EX      <= sig_Op3_DE;
-        sig_RegWr_EX    <= sig_RegWr_DE;
-        sig_MemToReg_EX <= sig_MemToReg_DE;
-        sig_MemWR_EX    <= sig_MemWR_DE;
-        sig_AluCtrl_EX  <= sig_AluCtrl_DE;
-        sig_AluSrc_EX   <= sig_AluSrc_DE;
-        sig_Branch_EX   <= sig_Branch_DE;
-        sig_PCSrc_EX    <= sig_PCSrc_DE;
-        sig_CCWr_EX     <= sig_CCWr_DE;
-        sig_Cond_EX     <= sig_Cond_DE;
       end if;
     end if;
   end process;
@@ -161,8 +199,8 @@ begin
       Res_fwd_ME => sig_Res_fwd_ME,
       Res_fwd_ER => sig_Res_RE,
       Op3_EX     => sig_Op3_EX,
-      EA_EX      => EA_EX,
-      EB_EX      => EB_EX,
+      EA_EX      => sig_EA_EX,
+      EB_EX      => sig_EB_EX,
       ALUCtrl_EX => sig_AluCtrl_EX,
       ALUSrc_EX  => sig_AluSrc_EX,
       CC         => CC,
@@ -171,6 +209,8 @@ begin
       WD_EX      => sig_WD_EX,
       npc_fw_br  => sig_npc_fw_br
     );
+  
+  
 
   -- Registre d'état CPSR (Flags)
   process(clk) begin
@@ -183,6 +223,7 @@ begin
     end if;
   end process;
 
+
   -- Pipeline EX/ME
   process(clk) begin
     if rising_edge(clk) then
@@ -190,7 +231,7 @@ begin
       sig_WD_ME       <= sig_WD_EX;
       sig_Op3_ME      <= sig_Op3_EX_out;
       sig_MemToReg_ME <= sig_MemToReg_EX;
-      -- APPLICATION DU CONDEX : On ne propage l'écriture que si la condition est vraie
+      -- Propage l'écriture que si la condition est vraie
       sig_RegWr_ME    <= sig_RegWr_EX and sig_CondEx_EX;
       sig_MemWR_ME    <= sig_MemWR_EX and sig_CondEx_EX;
     end if;
